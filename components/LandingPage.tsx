@@ -1,0 +1,687 @@
+'use client';
+
+import { useState } from 'react';
+
+interface LandingPageProps {
+  onGetStarted: () => void;
+}
+
+export default function LandingPage({ onGetStarted }: LandingPageProps) {
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [showCTA, setShowCTA] = useState(false);
+  const [terminalOutput, setTerminalOutput] = useState<
+    Array<{ text: string; type: string; timestamp: string }>
+  >([]);
+
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const addLog = (text: string, type = 'default') => {
+    const timestamp = new Date().toLocaleTimeString().split(' ')[0];
+    setTerminalOutput((prev) => [...prev, { text, type, timestamp }]);
+  };
+
+  const startDemo = async () => {
+    setTerminalOutput([]);
+    setShowCTA(false);
+    setIsSimulating(true);
+
+    addLog('Initializing Local Environment...', 'info');
+    await sleep(600);
+    addLog('Loading Master Seed Phrase (Protected)...', 'default');
+    await sleep(400);
+    addLog("Deriving 100 Wallets from path m/44'/501'...", 'info');
+    await sleep(800);
+
+    let totalRent = 0;
+
+    for (let i = 1; i <= 10; i++) {
+      const wallet = `8xQt...${Math.floor(100 + Math.random() * 900)}`;
+      const rent = 0.002039;
+
+      addLog(`Scanning ${wallet}...`);
+      await sleep(200);
+
+      if (Math.random() > 0.3) {
+        const found = Math.floor(Math.random() * 3) + 1;
+        const val = (rent * found).toFixed(6);
+        totalRent += parseFloat(val);
+        addLog(`→ Found ${found} Empty Accounts. Reclaimable: +${val} SOL`, 'success');
+        await sleep(400);
+      }
+    }
+
+    addLog('... accelerating scan ...', 'default');
+    await sleep(800);
+
+    addLog('Warning: Dust Detected in Wallet #42', 'money');
+    addLog('→ 420,000 $BONK (Dust). Value: $12.50', 'success');
+    await sleep(500);
+
+    addLog('Scan Complete.', 'info');
+    await sleep(400);
+
+    addLog('----------------------------------------', 'default');
+    addLog('PROFIT ANALYSIS', 'money');
+    addLog('Total Accounts Scanned: 100', 'default');
+    addLog('Recoverable Rent: 1.58 SOL ($250+)', 'success');
+    addLog('Recoverable Dust: 0.45 SOL ($70+)', 'success');
+    addLog('TOTAL UPSIDE: 2.03 SOL', 'money');
+    addLog('----------------------------------------', 'default');
+    await sleep(1000);
+
+    addLog('Initiating Recovery Transaction...', 'info');
+    await sleep(1500);
+
+    setIsSimulating(false);
+    setShowCTA(true);
+  };
+
+  const copyCode = () => {
+    const code = `git clone https://github.com/nullset/nullset.git\ncd nullset\nnpm install\nnpm run dev`;
+    navigator.clipboard.writeText(code);
+
+    const toast = document.getElementById('copyToast');
+    if (toast) {
+      toast.classList.remove('opacity-0');
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+      }, 2000);
+    }
+  };
+
+  const getLogClassName = (type: string) => {
+    const baseClass = 'font-mono text-sm border-l-2 pl-3 py-1 animate-fade-in';
+    switch (type) {
+      case 'success':
+        return `${baseClass} border-green-500 text-green-400 bg-green-500/5`;
+      case 'info':
+        return `${baseClass} border-blue-500 text-blue-300`;
+      case 'money':
+        return `${baseClass} border-yellow-500 text-yellow-300 font-bold`;
+      default:
+        return `${baseClass} border-gray-700 text-gray-400`;
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-[#050505] text-gray-200">
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Inter:wght@400;600;800&display=swap');
+
+        body {
+          font-family: 'Inter', sans-serif;
+          scroll-behavior: smooth;
+        }
+
+        .font-mono {
+          font-family: 'JetBrains Mono', monospace;
+        }
+
+        .money-glow {
+          text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+        }
+
+        .grid-bg {
+          background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+          background-size: 30px 30px;
+        }
+
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+          background: #000;
+        }
+        ::-webkit-scrollbar-thumb {
+          background: #333;
+          border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background: #444;
+        }
+
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-in;
+        }
+      `}</style>
+
+      {/* Navigation */}
+      <nav className="w-full border-b border-white/10 backdrop-blur-md fixed top-0 z-50 bg-black/50">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="bg-green-500/20 p-1 rounded">
+              <svg
+                className="w-5 h-5 text-green-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <span className="font-bold text-xl tracking-tighter">NULLSET</span>
+          </div>
+          <div className="flex items-center gap-6 text-sm font-medium">
+            <a href="#quick-start" className="text-gray-400 hover:text-white transition-colors">
+              Start Guide
+            </a>
+            <a href="#" className="text-gray-400 hover:text-white transition-colors">
+              $NULL
+            </a>
+            <a
+              href="https://github.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-full hover:bg-gray-200 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+              </svg>
+              <span>Clone Repo</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="flex-grow pt-32 pb-20 px-6 grid-bg">
+        <div className="max-w-4xl mx-auto">
+          {/* Hero Section */}
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-900/20 border border-green-500/30 text-green-400 text-xs font-mono mb-6">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+              Running on localhost:3500 • Avg. User Reclaims 1.2 SOL
+            </div>
+
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6">
+              Find the{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 money-glow">
+                Money
+              </span>
+              <br />
+              You Forgot You Had.
+            </h1>
+            <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-8 leading-relaxed">
+              Every empty token account locks up <b>0.002 SOL</b> in rent. Your 100+ derived wallets
+              are leaking liquidity.
+              <span className="block mt-2 text-white font-medium">
+                NullSet scans your keys locally and reclaims your SOL. Already running on your machine.
+              </span>
+            </p>
+
+            <div className="flex flex-wrap justify-center gap-4">
+              <button
+                onClick={startDemo}
+                disabled={isSimulating}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white border border-green-500 px-6 py-3 rounded-lg transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)] group disabled:opacity-50"
+              >
+                <svg
+                  className="w-4 h-4 group-hover:scale-110 transition-transform"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                <span className="font-bold">Scan for Lost SOL</span>
+              </button>
+              <a
+                href="#quick-start"
+                className="flex items-center gap-2 border border-white/20 hover:border-white/40 px-6 py-3 rounded-lg transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                <span className="font-mono text-sm">How to Install</span>
+              </a>
+            </div>
+          </div>
+
+          {/* The Interface (Demo Terminal) */}
+          <div className="relative w-full max-w-3xl mx-auto bg-black border border-white/10 rounded-xl overflow-hidden shadow-2xl shadow-green-900/10 mb-20">
+            {/* Header */}
+            <div className="bg-[#0A0A0A] px-4 py-3 flex items-center justify-between border-b border-white/5">
+              <div className="flex gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500/20"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-500/20"></div>
+                <div className="w-3 h-3 rounded-full bg-green-500/20"></div>
+              </div>
+              <div className="text-xs text-gray-500 font-mono flex items-center gap-2">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  />
+                </svg>
+                localhost:3000 • Secure Environment
+              </div>
+              <div className="w-10"></div>
+            </div>
+
+            {/* Simulation Area */}
+            <div className="p-6 font-mono text-sm h-[420px] overflow-y-auto relative scroll-smooth">
+              {terminalOutput.length === 0 && !isSimulating ? (
+                <div className="flex flex-col items-center justify-center h-full space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-green-900/20 flex items-center justify-center mb-2">
+                    <svg
+                      className="w-8 h-8 text-green-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-gray-400 text-center max-w-sm">
+                    Ready to scan derived path{' '}
+                    <span className="text-white bg-white/10 px-1 rounded">m/44&apos;/501&apos;/x&apos;/0&apos;</span>
+                  </p>
+                  <p className="text-xs text-gray-600">Click &quot;Scan for Lost SOL&quot; to simulate recovery</p>
+                </div>
+              ) : (
+                <div className="space-y-2 text-gray-300 pb-20">
+                  {terminalOutput.map((log, idx) => (
+                    <div key={idx} className={getLogClassName(log.type)}>
+                      <span className="opacity-50 text-xs mr-2">[{log.timestamp}]</span> {log.text}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Call to Action */}
+              {showCTA && (
+                <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center text-center p-8 z-20">
+                  <div className="bg-green-500/10 p-4 rounded-full mb-4 ring-1 ring-green-500/50">
+                    <svg
+                      className="w-10 h-10 text-green-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">
+                    Simulation Result: <span className="text-green-400">+1.58 SOL</span>
+                  </h3>
+                  <p className="text-gray-400 mb-8 max-w-md">
+                    To reclaim real funds, you must run this locally.
+                    <br />
+                    We never ask for private keys on the web.
+                  </p>
+                  <button
+                    onClick={onGetStarted}
+                    className="bg-white text-black font-bold px-8 py-4 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2 w-full sm:w-auto justify-center group"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                      />
+                    </svg>
+                    Launch App (Already Running)
+                    <svg
+                      className="w-4 h-4 group-hover:translate-x-1 transition-transform"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* What We Scan Section */}
+          <div className="border-t border-white/10 pt-20 pb-20">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-4">
+                What <span className="text-green-400">We Scan</span>
+              </h2>
+              <p className="text-gray-400">
+                NullSet detects all hidden value across your wallet ecosystem
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+              <div className="flex gap-4 items-start p-6 border border-white/5 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center shrink-0 mt-1">
+                  <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-white mb-2">Empty Token Accounts</h3>
+                  <p className="text-sm text-gray-400">
+                    Every closed account returns 0.002 SOL in rent. With 100+ derived wallets, that adds up fast.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 items-start p-6 border border-white/5 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center shrink-0 mt-1">
+                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-white mb-2">Pump.fun Creator Rewards</h3>
+                  <p className="text-sm text-gray-400">
+                    Launched tokens on Pump.fun? We detect and claim all accumulated trading fees automatically.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 items-start p-6 border border-white/5 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0 mt-1">
+                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-white mb-2">Locked & Vested Tokens</h3>
+                  <p className="text-sm text-gray-400">
+                    Detects Streamflow and Jupiter Lock vesting contracts across all your derived addresses.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 items-start p-6 border border-white/5 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0 mt-1">
+                  <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-white mb-2">Dust Token Balances</h3>
+                  <p className="text-sm text-gray-400">
+                    Consolidate worthless token dust and reclaim the rent locked in those accounts.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Installation / Tutorial Section */}
+          <div id="quick-start" className="border-t border-white/10 pt-20">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm mb-6">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="font-bold">App Already Running!</span> Click &quot;Launch App&quot; above to start scanning.
+              </div>
+              <h2 className="text-3xl font-bold mb-4">
+                Or install fresh in <span className="text-green-400">60 Seconds</span>
+              </h2>
+              <p className="text-gray-400">
+                Zero trust required. The code is open source and runs entirely on your machine.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8 items-start">
+              {/* Steps */}
+              <div className="space-y-6">
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center font-bold text-sm shrink-0">
+                    1
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white mb-1">Prerequisites</h3>
+                    <p className="text-sm text-gray-400">
+                      Ensure you have{' '}
+                      <a
+                        href="https://nodejs.org/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-green-400 hover:underline"
+                      >
+                        Node.js
+                      </a>{' '}
+                      (v18+) and Git installed on your computer.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center font-bold text-sm shrink-0">
+                    2
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white mb-1">Clone the Repository</h3>
+                    <p className="text-sm text-gray-400">
+                      Download the source code from GitHub to your local machine.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center font-bold text-sm shrink-0">
+                    3
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white mb-1">Install & Run</h3>
+                    <p className="text-sm text-gray-400">
+                      Install dependencies and start the local development server. The dashboard will open
+                      in your browser automatically.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-lg flex gap-3">
+                    <svg
+                      className="w-5 h-5 text-yellow-500 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                    <p className="text-xs text-yellow-200/80 leading-relaxed">
+                      <span className="font-bold text-yellow-500">Security Note:</span> When the app launches
+                      locally (localhost:3000), you will input your seed phrase or private keys. Since this
+                      runs on your machine, your keys never leave your computer.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Code Block */}
+              <div className="relative bg-[#0F0F0F] rounded-xl border border-white/10 overflow-hidden shadow-2xl">
+                <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/5">
+                  <span className="text-xs text-gray-500 font-mono">Terminal</span>
+                  <button
+                    onClick={copyCode}
+                    className="text-xs text-gray-400 hover:text-white flex items-center gap-1"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>{' '}
+                    Copy
+                  </button>
+                </div>
+                <div className="p-6 font-mono text-sm text-gray-300 leading-relaxed">
+                  <p className="mb-4">
+                    <span className="text-green-500">➜</span> <span className="text-blue-400">~</span> git
+                    clone https://github.com/nullset/nullset.git
+                  </p>
+                  <p className="mb-4">
+                    <span className="text-green-500">➜</span> <span className="text-blue-400">~</span> cd
+                    nullset
+                  </p>
+                  <p className="mb-4">
+                    <span className="text-green-500">➜</span>{' '}
+                    <span className="text-blue-400">nullset</span> npm install
+                  </p>
+                  <p className="mb-4">
+                    <span className="text-green-500">➜</span>{' '}
+                    <span className="text-blue-400">nullset</span> npm run dev
+                  </p>
+                  <p className="animate-pulse text-gray-500">&gt; Ready on http://localhost:3000</p>
+                </div>
+                <div
+                  id="copyToast"
+                  className="absolute top-10 right-4 bg-green-500 text-black text-xs font-bold px-3 py-1 rounded opacity-0 transition-opacity"
+                >
+                  Copied!
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Features Grid */}
+          <div className="grid md:grid-cols-3 gap-6 mt-20 pb-20 border-t border-white/10 pt-20">
+            <div className="p-6 border border-white/5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors group">
+              <div className="w-10 h-10 bg-green-900/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-900/30 transition-colors">
+                <svg
+                  className="w-5 h-5 text-green-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
+                </svg>
+              </div>
+              <h3 className="font-bold mb-2">Mass Rent Recovery</h3>
+              <p className="text-sm text-gray-400">
+                Aggregate thousands of 0.002 SOL rent deposits into one master wallet instantly.
+              </p>
+            </div>
+            <div className="p-6 border border-white/5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors group">
+              <div className="w-10 h-10 bg-blue-900/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-900/30 transition-colors">
+                <svg
+                  className="w-5 h-5 text-blue-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                  />
+                </svg>
+              </div>
+              <h3 className="font-bold mb-2">Local Key Management</h3>
+              <p className="text-sm text-gray-400">
+                Bypass browser wallet limits. Manage 100+ derived accounts directly via Node.js.
+              </p>
+            </div>
+            <div className="p-6 border border-white/5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors group">
+              <div className="w-10 h-10 bg-purple-900/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-purple-900/30 transition-colors">
+                <svg
+                  className="w-5 h-5 text-purple-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+                  />
+                </svg>
+              </div>
+              <h3 className="font-bold mb-2">Dust Consolidation</h3>
+              <p className="text-sm text-gray-400">
+                Sweep tiny token balances that aren&apos;t worth swapping individually into one pile.
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-white/10 py-12 bg-black">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-2 opacity-50">
+            <span className="font-bold tracking-tighter">NULLSET</span>
+          </div>
+          <div className="text-gray-500 text-sm text-center md:text-left">
+            Stop leaving money on the chain. <br className="hidden md:block" />
+            Powered by $NULL.
+          </div>
+          <div className="flex gap-4">
+            <a href="#" className="text-gray-500 hover:text-white transition-colors">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" />
+              </svg>
+            </a>
+            <a href="#" className="text-gray-500 hover:text-white transition-colors">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}

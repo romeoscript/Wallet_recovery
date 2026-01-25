@@ -1,0 +1,52 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+.vercel
+
+# Development guides and documentation
+AUTO_FUNDING_GUIDE.md
+LOCKED_TOKENS_DISPLAY.md
+LOCKED_TOKENS_GUIDE.md
+NEW_FEATURES.md
+PROCESS_FLOW.md
+RPC_SETUP_GUIDE.md
+STREAMFLOW_INTEGRATION.md
+USAGE_EXAMPLE.md
