@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
@@ -13,6 +13,7 @@ export default function LandingPage() {
   >([]);
   const [statCounter, setStatCounter] = useState({ sol: 0, accounts: 0 });
   const terminalRef = useRef<HTMLDivElement>(null);
+  const hasAutoPlayed = useRef(false);
 
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -31,7 +32,7 @@ export default function LandingPage() {
     setIsSimulating(true);
     setStatCounter({ sol: 0, accounts: 0 });
 
-    addLog('$ nullset scan --network mainnet', 'command');
+    addLog('$ glean scan --network mainnet', 'command');
     await sleep(600);
     addLog('Connecting to Solana RPC...', 'dim');
     await sleep(400);
@@ -86,6 +87,16 @@ export default function LandingPage() {
     setShowCTA(true);
   };
 
+  // Auto-play demo on first mount after a short delay
+  useEffect(() => {
+    if (hasAutoPlayed.current) return;
+    hasAutoPlayed.current = true;
+    const timer = setTimeout(() => {
+      startDemo();
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const logStyle = (type: string) => {
     const base = 'font-mono text-[12.5px] leading-[22px] animate-slide-in whitespace-pre';
     switch (type) {
@@ -118,7 +129,7 @@ export default function LandingPage() {
                 <div className="w-2.5 h-2.5 rounded-sm bg-[#00e85e] shadow-[0_0_10px_var(--green-glow)]" />
               </div>
             </div>
-            <span className="font-mono font-bold text-[15px] tracking-wide">NULLSET</span>
+            <span className="font-mono font-bold text-[15px] tracking-wide">GLEAN</span>
           </div>
           <div className="flex items-center gap-6">
             <a href="#how" className="text-[13px] text-white/40 hover:text-white/80 transition-colors">How it works</a>
@@ -189,14 +200,14 @@ export default function LandingPage() {
                 }}
               />
               <button
-                onClick={startDemo}
+                onClick={() => { if (!isSimulating && !showCTA) startDemo(); }}
                 disabled={isSimulating}
                 className="group flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.15] hover:bg-white/[0.06] text-white/70 hover:text-white px-6 h-12 rounded-[10px] transition-all text-[14px] font-medium disabled:opacity-30"
               >
                 <svg className="w-4 h-4 text-[#00e85e] opacity-70 group-hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                 </svg>
-                Watch Demo
+                {isSimulating ? 'Running...' : showCTA ? 'Replay Demo' : 'Watch Demo'}
               </button>
             </div>
 
@@ -213,7 +224,7 @@ export default function LandingPage() {
                     <div className="w-[10px] h-[10px] rounded-full bg-white/[0.06] hover:bg-yellow-500/40 transition-colors" />
                     <div className="w-[10px] h-[10px] rounded-full bg-white/[0.06] hover:bg-green-500/40 transition-colors" />
                   </div>
-                  <span className="font-mono text-[10px] text-white/20 tracking-widest">NULLSET</span>
+                  <span className="font-mono text-[10px] text-white/20 tracking-widest">GLEAN</span>
                   <div className="w-12" />
                 </div>
 
@@ -379,7 +390,7 @@ export default function LandingPage() {
                 Every source of <span className="text-gradient">hidden value.</span>
               </h2>
               <p className="text-white/30 text-[15px] mt-4 max-w-md mx-auto">
-                NullSet scans your wallet for all recoverable SOL across multiple protocols.
+                Glean scans your wallet for all recoverable SOL across multiple protocols.
               </p>
             </div>
 
@@ -495,9 +506,9 @@ export default function LandingPage() {
             <div className="w-5 h-5 rounded bg-[#00e85e]/10 flex items-center justify-center">
               <div className="w-1.5 h-1.5 rounded-sm bg-[#00e85e]/40" />
             </div>
-            <span className="font-mono text-[11px] text-white/20 tracking-wider">NULLSET</span>
+            <span className="font-mono text-[11px] text-white/20 tracking-wider">GLEAN</span>
           </div>
-          <p className="text-[11px] text-white/15">Powered by $NULL</p>
+          <p className="text-[11px] text-white/15">Powered by $GLEAN</p>
           <div className="flex gap-4">
             <a href="#" className="text-white/15 hover:text-white/40 transition-colors">
               <svg className="w-[15px] h-[15px]" fill="currentColor" viewBox="0 0 24 24">

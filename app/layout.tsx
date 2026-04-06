@@ -16,8 +16,8 @@ const interMono = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'NullSet | Solana Rent Recovery',
-  description: 'Find the money you forgot you had. Reclaim rent from empty token accounts and consolidate dust across your wallets.',
+  title: 'Glean | Solana Rent Recovery',
+  description: 'Find the money you forgot you had. Reclaim rent from empty token accounts and recover hidden SOL.',
 };
 
 export default function RootLayout({

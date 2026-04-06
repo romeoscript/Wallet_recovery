@@ -23,7 +23,7 @@ export default function SetupScreen() {
               </svg>
             </div>
             <h1 className="text-4xl font-bold tracking-tighter">
-              NULLSET
+              GLEAN
             </h1>
           </div>
           <p className="text-gray-400 text-lg mb-2">

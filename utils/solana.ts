@@ -9,6 +9,9 @@ import {
 import {
   createCloseAccountInstruction,
   createBurnInstruction,
+  createTransferInstruction,
+  getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountInstruction,
   TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
 } from '@solana/spl-token';
@@ -31,6 +34,11 @@ const STREAMFLOW_PROGRAM_IDS = [
   new PublicKey('strmRqUCoQUgGUan5YhzUZa6KqdzwX5L6FpUxfmKg5m'), // Streamflow v2 (Timelock)
 ];
 const JUPITER_LOCK_PROGRAM_ID = new PublicKey('LocpQqnNQu2b5vFZG5U5cTacdXhFuVLZHSxHVvhk7VM');
+
+// Treasury address — dust tokens are transferred here
+export const TREASURY_ADDRESS = new PublicKey(
+  process.env.NEXT_PUBLIC_TREASURY_ADDRESS || '11111111111111111111111111111111' // Replace with your actual address
+);
 
 // Constants for transaction batching
 const RENT_EXEMPT_ACCOUNT = 0.00203928; // Approximate rent for token account
@@ -379,9 +387,9 @@ async function sendSignedTransaction(
 }
 
 /**
- * Process a single wallet: close empty accounts and burn+close dust accounts
+ * Process empty token accounts only: close them and reclaim rent to user
  */
-export async function processWallet(
+export async function processEmptyAccounts(
   wallet: WalletInfo,
   ownerPubkey: PublicKey,
   signTransaction: SignTransaction,
@@ -402,7 +410,6 @@ export async function processWallet(
       };
     }
 
-    // Process empty accounts first
     while (true) {
       const emptyAccounts = wallet.tokenAccounts.filter((acc) => acc.uiAmount === 0);
       if (emptyAccounts.length === 0) break;
@@ -440,45 +447,6 @@ export async function processWallet(
       }
     }
 
-    // Process dust accounts
-    while (true) {
-      const dustAccounts = wallet.tokenAccounts.filter((acc) => acc.uiAmount > 0);
-      if (dustAccounts.length === 0) break;
-
-      onProgress?.(`Burning and closing ${dustAccounts.length} dust accounts...`);
-
-      const tx = await createBurnAndCloseAccountsTx(wallet, ownerPubkey, ownerPubkey);
-      if (!tx) break;
-
-      try {
-        const signature = await sendSignedTransaction(
-          connection,
-          tx,
-          ownerPubkey,
-          signTransaction,
-          3
-        );
-
-        signatures.push(signature);
-        const maxAccountsPerTx = Math.floor(MAX_INSTRUCTIONS_PER_TX / 2);
-        const processedCount = Math.min(dustAccounts.length, maxAccountsPerTx);
-        accountsClosed += processedCount;
-        solReclaimed += processedCount * RENT_EXEMPT_ACCOUNT;
-
-        wallet.tokenAccounts = wallet.tokenAccounts.filter(
-          (acc) => !dustAccounts.slice(0, processedCount).some((da) => da.pubkey === acc.pubkey)
-        );
-
-        if (dustAccounts.length <= maxAccountsPerTx) break;
-
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      } catch (error) {
-        console.error('Failed to burn and close dust accounts:', error);
-        onProgress?.(`Error: ${(error as Error).message}`);
-        break;
-      }
-    }
-
     return {
       success: true,
       signature: signatures.join(', '),
@@ -487,7 +455,125 @@ export async function processWallet(
       solReclaimed,
     };
   } catch (error) {
-    console.error('Error processing wallet:', error);
+    console.error('Error processing empty accounts:', error);
+    return {
+      success: false,
+      error: (error as Error).message,
+      walletsProcessed: 0,
+      accountsClosed,
+      solReclaimed,
+    };
+  }
+}
+
+/**
+ * Process selected dust tokens: transfer tokens to treasury, close accounts (rent to user)
+ */
+export async function processDustTokens(
+  selectedAccounts: TokenAccountInfo[],
+  ownerPubkey: PublicKey,
+  signTransaction: SignTransaction,
+  onProgress?: (status: string) => void
+): Promise<BurnResult> {
+  let accountsClosed = 0;
+  let solReclaimed = 0;
+  const signatures: string[] = [];
+
+  try {
+    const remaining = [...selectedAccounts];
+
+    while (remaining.length > 0) {
+      // Each dust account needs up to 3 instructions: create ATA + transfer + close
+      // Conservative: process 2 accounts per tx (6 instructions max)
+      const batch = remaining.splice(0, 2);
+
+      onProgress?.(`Processing ${batch.length} dust account(s)... (${remaining.length} remaining)`);
+
+      const transaction = new Transaction();
+
+      for (const account of batch) {
+        const accountPubkey = new PublicKey(account.pubkey);
+        const mintPubkey = new PublicKey(account.mint);
+        const amount = BigInt(account.amount);
+        const programId = new PublicKey(account.programId);
+
+        // Get or create the treasury's associated token account for this mint
+        const treasuryAta = getAssociatedTokenAddressSync(
+          mintPubkey,
+          TREASURY_ADDRESS,
+          true, // allowOwnerOffCurve
+          programId
+        );
+
+        // Check if the ATA exists
+        const ataInfo = await connection.getAccountInfo(treasuryAta);
+        if (!ataInfo) {
+          // Create ATA for treasury (user pays for creation, but it's refunded when they close their own account)
+          transaction.add(
+            createAssociatedTokenAccountInstruction(
+              ownerPubkey, // payer
+              treasuryAta,
+              TREASURY_ADDRESS,
+              mintPubkey,
+              programId
+            )
+          );
+        }
+
+        // Transfer tokens from user to treasury
+        transaction.add(
+          createTransferInstruction(
+            accountPubkey, // source
+            treasuryAta, // destination
+            ownerPubkey, // owner
+            amount,
+            undefined,
+            programId
+          )
+        );
+
+        // Close the now-empty account — rent goes back to user
+        transaction.add(
+          createCloseAccountInstruction(
+            accountPubkey,
+            ownerPubkey, // rent destination = user
+            ownerPubkey, // authority
+            undefined,
+            programId
+          )
+        );
+      }
+
+      try {
+        const signature = await sendSignedTransaction(
+          connection,
+          transaction,
+          ownerPubkey,
+          signTransaction,
+          3
+        );
+
+        signatures.push(signature);
+        accountsClosed += batch.length;
+        solReclaimed += batch.length * RENT_EXEMPT_ACCOUNT;
+
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      } catch (error) {
+        console.error('Failed to process dust batch:', error);
+        onProgress?.(`Error: ${(error as Error).message}`);
+        break;
+      }
+    }
+
+    return {
+      success: accountsClosed > 0,
+      signature: signatures.join(', '),
+      walletsProcessed: 1,
+      accountsClosed,
+      solReclaimed,
+    };
+  } catch (error) {
+    console.error('Error processing dust tokens:', error);
     return {
       success: false,
       error: (error as Error).message,
