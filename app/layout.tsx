@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import WalletContextProvider from '@/components/WalletContextProvider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -16,7 +17,7 @@ const interMono = Inter({
 
 export const metadata: Metadata = {
   title: 'NullSet | Solana Rent Recovery',
-  description: 'Find the money you forgot you had. Reclaim rent from empty token accounts and consolidate dust across your derived wallets.',
+  description: 'Find the money you forgot you had. Reclaim rent from empty token accounts and consolidate dust across your wallets.',
 };
 
 export default function RootLayout({
@@ -26,7 +27,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${interMono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <WalletContextProvider>{children}</WalletContextProvider>
+      </body>
     </html>
   );
 }

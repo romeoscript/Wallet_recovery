@@ -1,8 +1,5 @@
-import { Keypair } from '@solana/web3.js';
-
 export interface WalletInfo {
   address: string;
-  keypair: Keypair;
   solBalance: number;
   emptyTokenAccounts: number;
   dustTokenAccounts: number;
@@ -58,14 +55,6 @@ export interface SummaryStats {
   totalEmptyAccounts: number;
   totalLockedTokens: number;
   totalUnlockableTokens: number;
-}
-
-export interface SetupConfig {
-  inputType: 'seed' | 'keys';
-  seedPhrase?: string;
-  accountCount?: number;
-  secretKeys?: Uint8Array[];
-  masterAddress: string;
 }
 
 export interface BurnResult {

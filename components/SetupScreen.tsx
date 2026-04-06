@@ -1,72 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { Keypair } from '@solana/web3.js';
-import {
-  deriveKeypairsFromSeed,
-  parseSecretKeysJSON,
-  secretKeysToKeypairs,
-  isValidPublicKey,
-} from '@/utils/solana';
-import { SetupConfig } from '@/types';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
-interface SetupScreenProps {
-  onSetupComplete: (keypairs: Keypair[], masterAddress: string) => void;
-}
-
-export default function SetupScreen({ onSetupComplete }: SetupScreenProps) {
-  const [inputType, setInputType] = useState<'seed' | 'keys'>('seed');
-  const [seedPhrase, setSeedPhrase] = useState('');
-  const [accountCount, setAccountCount] = useState(100);
-  const [secretKeysJSON, setSecretKeysJSON] = useState('');
-  const [masterAddress, setMasterAddress] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+export default function SetupScreen() {
+  const { connected } = useWallet();
 
   const gridBgStyle = {
     backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)',
     backgroundSize: '30px 30px',
-  };
-
-  const handleSubmit = async () => {
-    setError('');
-    setIsLoading(true);
-
-    try {
-      // Validate master address
-      if (!isValidPublicKey(masterAddress)) {
-        throw new Error('Invalid master destination address');
-      }
-
-      let keypairs: Keypair[];
-
-      if (inputType === 'seed') {
-        // Validate seed phrase
-        if (!seedPhrase.trim()) {
-          throw new Error('Seed phrase is required');
-        }
-
-        keypairs = await deriveKeypairsFromSeed(seedPhrase.trim(), accountCount);
-      } else {
-        // Validate secret keys JSON
-        if (!secretKeysJSON.trim()) {
-          throw new Error('Secret keys are required');
-        }
-
-        const secretKeys = parseSecretKeysJSON(secretKeysJSON);
-        keypairs = secretKeysToKeypairs(secretKeys);
-      }
-
-      if (keypairs.length === 0) {
-        throw new Error('No valid keypairs generated');
-      }
-
-      onSetupComplete(keypairs, masterAddress);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   return (
@@ -84,155 +26,56 @@ export default function SetupScreen({ onSetupComplete }: SetupScreenProps) {
               NULLSET
             </h1>
           </div>
-          <p className="text-gray-400 text-lg">
-            Initialize your wallet scanner
+          <p className="text-gray-400 text-lg mb-2">
+            Solana Wallet Recovery Dashboard
+          </p>
+          <p className="text-gray-500 text-sm">
+            Reclaim rent from empty token accounts, burn dust, and recover locked value.
           </p>
         </div>
 
-        {/* Security Warning */}
-        <div className="mb-8 p-6 border border-yellow-500/20 bg-yellow-500/5 rounded-xl">
-          <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        {/* Connect Wallet Card */}
+        <div className="p-8 border border-white/10 rounded-xl bg-white/[0.02] text-center">
+          <div className="mb-6">
+            <svg className="w-12 h-12 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" />
             </svg>
-            <div>
-              <p className="text-sm text-yellow-200/90 leading-relaxed">
-                <strong className="text-yellow-400">Security Note:</strong> This application runs entirely on your machine. Your seed phrase and private keys never leave your browser. All operations are performed locally using your RPC endpoint.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Form */}
-        <div className="space-y-6">
-          {/* Input Type Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-3">
-              Input Method
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setInputType('seed')}
-                className={`py-3 px-4 text-sm rounded-lg border transition-all ${
-                  inputType === 'seed'
-                    ? 'border-green-500 bg-green-500 text-black font-medium shadow-[0_0_20px_rgba(34,197,94,0.3)]'
-                    : 'border-white/10 hover:border-white/30 bg-white/[0.02] hover:bg-white/[0.05]'
-                }`}
-              >
-                Seed Phrase
-              </button>
-              <button
-                onClick={() => setInputType('keys')}
-                className={`py-3 px-4 text-sm rounded-lg border transition-all ${
-                  inputType === 'keys'
-                    ? 'border-green-500 bg-green-500 text-black font-medium shadow-[0_0_20px_rgba(34,197,94,0.3)]'
-                    : 'border-white/10 hover:border-white/30 bg-white/[0.02] hover:bg-white/[0.05]'
-                }`}
-              >
-                Secret Keys (JSON)
-              </button>
-            </div>
-          </div>
-
-          {/* Seed Phrase Input */}
-          {inputType === 'seed' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
-                  Seed Phrase (12 or 24 words)
-                </label>
-                <textarea
-                  value={seedPhrase}
-                  onChange={(e) => setSeedPhrase(e.target.value)}
-                  placeholder="Enter your seed phrase..."
-                  className="w-full px-4 py-3 bg-black/50 border border-white/10 text-white text-sm rounded-lg focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/50 placeholder-gray-600 font-mono transition-all"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
-                  Number of Accounts to Derive
-                </label>
-                <input
-                  type="number"
-                  value={accountCount}
-                  onChange={(e) => setAccountCount(parseInt(e.target.value) || 100)}
-                  min={1}
-                  max={1000}
-                  className="w-full px-4 py-3 bg-black/50 border border-white/10 text-white text-sm rounded-lg focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/50 transition-all"
-                />
-                <p className="mt-2 text-xs text-gray-500">
-                  Recommended: 100 accounts (path m/44&apos;/501&apos;/0-99&apos;/0&apos;)
-                </p>
-              </div>
-            </>
-          )}
-
-          {/* Secret Keys JSON Input */}
-          {inputType === 'keys' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-3">
-                Secret Keys (JSON Array)
-              </label>
-              <textarea
-                value={secretKeysJSON}
-                onChange={(e) => setSecretKeysJSON(e.target.value)}
-                placeholder='[&#10;  [1,2,3,...],&#10;  [4,5,6,...],&#10;  "base58string"&#10;]'
-                className="w-full px-4 py-3 bg-black/50 border border-white/10 text-white text-sm rounded-lg focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/50 placeholder-gray-600 font-mono transition-all"
-                rows={6}
-              />
-              <p className="mt-2 text-xs text-gray-500">
-                Accepts array of Uint8Arrays or base58 strings
-              </p>
-            </div>
-          )}
-
-          {/* Master Address Input */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-3">
-              Master Destination Address
-            </label>
-            <input
-              type="text"
-              value={masterAddress}
-              onChange={(e) => setMasterAddress(e.target.value)}
-              placeholder="Enter Solana address to receive reclaimed SOL..."
-              className="w-full px-4 py-3 bg-black/50 border border-white/10 text-white text-sm rounded-lg focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/50 placeholder-gray-600 font-mono transition-all"
-            />
-            <p className="mt-2 text-xs text-gray-500">
-              All reclaimed SOL and fees will be consolidated to this address
+            <h2 className="text-xl font-semibold text-gray-200 mb-2">
+              Connect Your Wallet
+            </h2>
+            <p className="text-sm text-gray-500">
+              Connect with Phantom, Solflare, or any Solana wallet to scan and recover value.
             </p>
           </div>
 
-          {/* Error Display */}
-          {error && (
-            <div className="p-4 border border-red-500/20 bg-red-500/10 rounded-lg">
-              <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-sm text-red-400">{error}</p>
-              </div>
-            </div>
-          )}
+          <div className="flex justify-center">
+            <WalletMultiButton
+              style={{
+                backgroundColor: '#16a34a',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                fontWeight: 700,
+                height: '3rem',
+                padding: '0 2rem',
+              }}
+            />
+          </div>
+        </div>
 
-          {/* Submit Button */}
-          <button
-            onClick={handleSubmit}
-            disabled={isLoading}
-            className="w-full py-4 bg-green-600 text-white font-bold text-sm rounded-lg hover:bg-green-500 transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.4)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-          >
-            {isLoading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Initializing Scanner...
-              </span>
-            ) : 'Initialize Scanner'}
-          </button>
+        {/* Features */}
+        <div className="mt-8 grid grid-cols-3 gap-4">
+          <div className="p-4 border border-white/5 rounded-xl bg-white/[0.01]">
+            <p className="text-xs text-green-400 font-medium mb-1">RENT RECOVERY</p>
+            <p className="text-xs text-gray-500">Close empty token accounts and reclaim ~0.002 SOL each</p>
+          </div>
+          <div className="p-4 border border-white/5 rounded-xl bg-white/[0.01]">
+            <p className="text-xs text-blue-400 font-medium mb-1">LOCKED TOKENS</p>
+            <p className="text-xs text-gray-500">Detect and claim unlocked vesting contracts</p>
+          </div>
+          <div className="p-4 border border-white/5 rounded-xl bg-white/[0.01]">
+            <p className="text-xs text-purple-400 font-medium mb-1">PUMP.FUN FEES</p>
+            <p className="text-xs text-gray-500">Scan for and claim creator reward fees</p>
+          </div>
         </div>
       </div>
     </div>

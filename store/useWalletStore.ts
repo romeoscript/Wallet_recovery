@@ -1,21 +1,15 @@
 import { create } from 'zustand';
-import { Keypair, PublicKey } from '@solana/web3.js';
-import { WalletInfo, ScanProgress, SummaryStats, SetupConfig } from '@/types';
+import { WalletInfo, ScanProgress, SummaryStats } from '@/types';
 
 interface WalletStore {
-  // Setup state
-  isSetup: boolean;
-  masterAddress: string | null;
-
-  // Wallets state
-  wallets: WalletInfo[];
+  // Wallet state
+  wallet: WalletInfo | null;
   scanProgress: ScanProgress;
   summaryStats: SummaryStats;
 
   // Actions
-  setSetupComplete: (config: SetupConfig) => void;
-  setWallets: (wallets: WalletInfo[]) => void;
-  updateWallet: (address: string, updates: Partial<WalletInfo>) => void;
+  setWallet: (wallet: WalletInfo) => void;
+  updateWallet: (updates: Partial<WalletInfo>) => void;
   setScanProgress: (progress: ScanProgress) => void;
   updateSummaryStats: () => void;
   reset: () => void;
@@ -24,13 +18,10 @@ interface WalletStore {
 const RENT_EXEMPT_ACCOUNT = 0.00203928;
 
 export const useWalletStore = create<WalletStore>((set, get) => ({
-  // Initial state
-  isSetup: false,
-  masterAddress: null,
-  wallets: [],
+  wallet: null,
   scanProgress: {
     current: 0,
-    total: 0,
+    total: 1,
     isScanning: false,
   },
   summaryStats: {
@@ -42,61 +33,54 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     totalUnlockableTokens: 0,
   },
 
-  // Actions
-  setSetupComplete: (config) =>
-    set({
-      isSetup: true,
-      masterAddress: config.masterAddress,
-    }),
-
-  setWallets: (wallets) => {
-    set({ wallets });
+  setWallet: (wallet) => {
+    set({ wallet });
     get().updateSummaryStats();
   },
 
-  updateWallet: (address, updates) =>
+  updateWallet: (updates) =>
     set((state) => {
-      const wallets = state.wallets.map((w) =>
-        w.address === address ? { ...w, ...updates } : w
-      );
-      return { wallets };
+      if (!state.wallet) return {};
+      return { wallet: { ...state.wallet, ...updates } };
     }),
 
   setScanProgress: (progress) => set({ scanProgress: progress }),
 
   updateSummaryStats: () =>
     set((state) => {
-      const stats: SummaryStats = {
-        totalWallets: state.wallets.length,
-        totalReclaimableSOL: 0,
-        totalDustAccounts: 0,
-        totalEmptyAccounts: 0,
-        totalLockedTokens: 0,
-        totalUnlockableTokens: 0,
+      const wallet = state.wallet;
+      if (!wallet) {
+        return {
+          summaryStats: {
+            totalWallets: 0,
+            totalReclaimableSOL: 0,
+            totalDustAccounts: 0,
+            totalEmptyAccounts: 0,
+            totalLockedTokens: 0,
+            totalUnlockableTokens: 0,
+          },
+        };
+      }
+
+      return {
+        summaryStats: {
+          totalWallets: 1,
+          totalReclaimableSOL:
+            (wallet.emptyTokenAccounts + wallet.dustTokenAccounts) * RENT_EXEMPT_ACCOUNT,
+          totalDustAccounts: wallet.dustTokenAccounts,
+          totalEmptyAccounts: wallet.emptyTokenAccounts,
+          totalLockedTokens: wallet.lockedTokens.length,
+          totalUnlockableTokens: wallet.lockedTokens.filter((lt) => lt.canClaim).length,
+        },
       };
-
-      state.wallets.forEach((wallet) => {
-        stats.totalDustAccounts += wallet.dustTokenAccounts;
-        stats.totalEmptyAccounts += wallet.emptyTokenAccounts;
-        stats.totalReclaimableSOL +=
-          (wallet.emptyTokenAccounts + wallet.dustTokenAccounts) * RENT_EXEMPT_ACCOUNT;
-
-        // Count locked tokens
-        stats.totalLockedTokens += wallet.lockedTokens.length;
-        stats.totalUnlockableTokens += wallet.lockedTokens.filter((lt) => lt.canClaim).length;
-      });
-
-      return { summaryStats: stats };
     }),
 
   reset: () =>
     set({
-      isSetup: false,
-      masterAddress: null,
-      wallets: [],
+      wallet: null,
       scanProgress: {
         current: 0,
-        total: 0,
+        total: 1,
         isScanning: false,
       },
       summaryStats: {
